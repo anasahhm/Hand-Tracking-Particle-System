@@ -1,4 +1,4 @@
-A real-time hand tracking application with 3D particle effects.
+**A real-time hand tracking application with 3D particle effects.**
 
 Installation:
 
