@@ -118,7 +118,6 @@ class GestureRecognizer:
         return gesture
 
 
-
 class Particle:
     """Individual particle with position, velocity, color, and lifetime."""
     
@@ -225,7 +224,6 @@ class ParticleSystem:
         for particle in self.particles:
             particle.draw_2d(frame, fx, fy)
 
-
 def draw_shape_2d(frame, shape_type, pos, size=100):
     """
     Draw 3D wireframe shapes on 2D frame.
@@ -276,10 +274,30 @@ def draw_shape_2d(frame, shape_type, pos, size=100):
 
 
 def draw_sphere_2d(frame, cx, cy, size, color, angle):
-    """Draw wireframe sphere."""
+    """Draw wireframe sphere with fluid fill."""
     segments = 16
+    fill_level = 0.75  # 75% filled
     
-    # Draw latitude circles
+    # Create overlay for semi-transparent fill
+    overlay = frame.copy()
+    
+    # Draw filled portion (bottom 75%)
+    fill_color = (color[0] // 2, color[1] // 2, color[2] // 2)
+    
+    # Draw filled semi-circles for fluid effect
+    for i in range(int(segments * fill_level)):
+        lat = (i / segments - 0.5) * math.pi
+        r = int(size * math.cos(lat))
+        y_offset = int(size * math.sin(lat))
+        
+        if y_offset > -size * (1 - fill_level):  # Only bottom 75%
+            cv2.ellipse(overlay, (cx, cy + y_offset), (r, abs(int(r * 0.3))), 
+                       0, 0, 180, fill_color, -1)
+    
+    # Blend overlay with original frame
+    cv2.addWeighted(overlay, 0.4, frame, 0.6, 0, frame)
+    
+    # Draw wireframe on top
     for i in range(segments // 2):
         lat = (i / (segments // 2) - 0.5) * math.pi
         r = int(size * math.cos(lat))
@@ -298,10 +316,25 @@ def draw_sphere_2d(frame, cx, cy, size, color, angle):
         
         for j in range(len(points) - 1):
             cv2.line(frame, points[j], points[j + 1], color, 2, cv2.LINE_AA)
+    
+    # Draw fluid surface line (wavy)
+    fluid_y = cy + int(size * (0.5 - fill_level))
+    wave_points = []
+    for i in range(50):
+        x_pos = cx - size + (i * 2 * size // 50)
+        wave_offset = int(5 * math.sin(i * 0.3 + angle / 10))
+        y_pos = fluid_y + wave_offset
+        wave_points.append((x_pos, y_pos))
+    
+    for i in range(len(wave_points) - 1):
+        cv2.line(frame, wave_points[i], wave_points[i + 1], 
+                (255, 255, 255), 2, cv2.LINE_AA)
 
 
 def draw_cube_2d(frame, cx, cy, size, color, angle):
-    """Draw rotating wireframe cube."""
+    """Draw rotating wireframe cube with fluid fill."""
+    fill_level = 0.75  # 75% filled
+    
     # Cube vertices
     s = size / 2
     vertices = np.array([
@@ -329,13 +362,36 @@ def draw_cube_2d(frame, cx, cy, size, color, angle):
     # Project to 2D
     points = []
     for v in rotated:
-        # Simple perspective projection
         scale = 200 / (200 + v[2])
         x = int(cx + v[0] * scale)
         y = int(cy + v[1] * scale)
         points.append((x, y))
     
-    # Draw cube edges
+    # Create overlay for fluid fill
+    overlay = frame.copy()
+    fill_color = (color[0] // 2, color[1] // 2, color[2] // 2)
+    
+    # Fill bottom 75% with fluid
+    fluid_height = cy + int(size * (0.5 - fill_level))
+    
+    # Draw filled faces (simplified - bottom faces)
+    faces = [
+        [0, 1, 5, 4],  # Bottom face
+        [0, 3, 7, 4],  # Left face (lower part)
+        [1, 2, 6, 5],  # Right face (lower part)
+    ]
+    
+    for face in faces:
+        face_points = np.array([points[i] for i in face], dtype=np.int32)
+        # Only fill if below fluid level
+        avg_y = np.mean([p[1] for p in face_points])
+        if avg_y > fluid_height:
+            cv2.fillPoly(overlay, [face_points], fill_color)
+    
+    # Blend overlay
+    cv2.addWeighted(overlay, 0.4, frame, 0.6, 0, frame)
+    
+    # Draw cube edges (wireframe)
     edges = [
         (0, 1), (1, 2), (2, 3), (3, 0),  # Front face
         (4, 5), (5, 6), (6, 7), (7, 4),  # Back face
@@ -344,10 +400,24 @@ def draw_cube_2d(frame, cx, cy, size, color, angle):
     
     for edge in edges:
         cv2.line(frame, points[edge[0]], points[edge[1]], color, 2, cv2.LINE_AA)
+    
+    # Draw wavy fluid surface
+    wave_points = []
+    for i in range(20):
+        x_pos = cx - size + (i * 2 * size // 20)
+        wave_offset = int(3 * math.sin(i * 0.5 + angle / 10))
+        y_pos = fluid_height + wave_offset
+        wave_points.append((x_pos, y_pos))
+    
+    for i in range(len(wave_points) - 1):
+        cv2.line(frame, wave_points[i], wave_points[i + 1], 
+                (255, 255, 255), 2, cv2.LINE_AA)
 
 
 def draw_pyramid_2d(frame, cx, cy, size, color, angle):
-    """Draw rotating pyramid."""
+    """Draw rotating pyramid with fluid fill."""
+    fill_level = 0.75
+    
     s = size
     vertices = np.array([
         [0, -s, 0],      # Apex
@@ -375,20 +445,42 @@ def draw_pyramid_2d(frame, cx, cy, size, color, angle):
         y = int(cy + v[1] * scale)
         points.append((x, y))
     
-    # Draw edges
+    # Create overlay for fluid fill
+    overlay = frame.copy()
+    fill_color = (color[0] // 2, color[1] // 2, color[2] // 2)
+    
+    # Fill bottom portion (base of pyramid)
+    base_face = np.array([points[1], points[2], points[3], points[4]], dtype=np.int32)
+    cv2.fillPoly(overlay, [base_face], fill_color)
+    
+    # Blend overlay
+    cv2.addWeighted(overlay, 0.5, frame, 0.5, 0, frame)
+    
+    # Draw wireframe edges
     edges = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (2, 3), (3, 4), (4, 1)]
     for edge in edges:
         cv2.line(frame, points[edge[0]], points[edge[1]], color, 2, cv2.LINE_AA)
+    
+    # Draw fluid level line
+    fluid_y = cy + int(size * (1 - fill_level))
+    cv2.line(frame, (cx - size, fluid_y), (cx + size, fluid_y), 
+            (255, 255, 255), 2, cv2.LINE_AA)
 
 
 def draw_torus_2d(frame, cx, cy, size, color, angle):
-    """Draw rotating torus."""
+    """Draw rotating torus with fluid fill."""
+    fill_level = 0.75
     major_r = size * 0.6
     minor_r = size * 0.3
     segments = 32
     
     rad = math.radians(angle)
     
+    # Create overlay for fill
+    overlay = frame.copy()
+    fill_color = (color[0] // 2, color[1] // 2, color[2] // 2)
+    
+    # Draw filled sections (bottom 75%)
     for i in range(segments):
         theta = i / segments * 2 * math.pi
         points = []
@@ -396,7 +488,6 @@ def draw_torus_2d(frame, cx, cy, size, color, angle):
         for j in range(segments):
             phi = j / segments * 2 * math.pi
             
-            # Torus parametric equations
             x = (major_r + minor_r * math.cos(phi)) * math.cos(theta)
             y = (major_r + minor_r * math.cos(phi)) * math.sin(theta)
             z = minor_r * math.sin(phi)
@@ -409,11 +500,46 @@ def draw_torus_2d(frame, cx, cy, size, color, angle):
             scale = 200 / (200 + z_rot)
             px = int(cx + x_rot * scale)
             py = int(cy + y * scale)
+            
+            # Fill lower portion
+            if py > cy - size * (1 - fill_level):
+                points.append((px, py))
+        
+        # Draw filled polygon for this ring segment
+        if len(points) > 3:
+            points_array = np.array(points, dtype=np.int32)
+            cv2.fillPoly(overlay, [points_array], fill_color)
+    
+    # Blend overlay
+    cv2.addWeighted(overlay, 0.3, frame, 0.7, 0, frame)
+    
+    # Draw wireframe
+    for i in range(segments):
+        theta = i / segments * 2 * math.pi
+        points = []
+        
+        for j in range(segments):
+            phi = j / segments * 2 * math.pi
+            
+            x = (major_r + minor_r * math.cos(phi)) * math.cos(theta)
+            y = (major_r + minor_r * math.cos(phi)) * math.sin(theta)
+            z = minor_r * math.sin(phi)
+            
+            x_rot = x * math.cos(rad) - z * math.sin(rad)
+            z_rot = x * math.sin(rad) + z * math.cos(rad)
+            
+            scale = 200 / (200 + z_rot)
+            px = int(cx + x_rot * scale)
+            py = int(cy + y * scale)
             points.append((px, py))
         
-        # Draw ring
         for j in range(len(points) - 1):
             cv2.line(frame, points[j], points[j + 1], color, 1, cv2.LINE_AA)
+    
+    # Draw fluid surface line
+    fluid_y = cy - int(size * (1 - fill_level))
+    cv2.ellipse(frame, (cx, fluid_y), (int(major_r), int(minor_r // 2)), 
+               0, 0, 360, (255, 255, 255), 2)
 
 
 def draw_helix_2d(frame, cx, cy, size, color, angle):
@@ -492,7 +618,6 @@ def draw_spiral_2d(frame, cx, cy, size, color, angle):
 
 
 
-
 class HandTracker:
     """MediaPipe hand tracking with 3D coordinate estimation."""
     
@@ -543,7 +668,7 @@ class HandTracker:
         )
         
         x = (palm_x - 0.5) * 2
-        y = -(palm_y - 0.5) * 2
+        y = -(palm_y - 0.5) * 2 - 0.4  # OFFSET: Move shape above hand
         z = (hand_size - 0.15) * 3
         
         position = [x, y, z]
@@ -559,8 +684,6 @@ class HandTracker:
     def close(self):
         """Release resources."""
         self.hands.close()
-
-
 
 
 class GestureParticleSystem:
@@ -712,9 +835,11 @@ class GestureParticleSystem:
                 
                 cv2.line(frame, (x1, y1), (x2, y2), color, 3, cv2.LINE_AA)
         
+        # Draw UI
         self.draw_help_text(frame)
         self.draw_gesture_info(frame)
         
+        # FPS counter
         fps = self.clock.get_fps()
         cv2.putText(frame, f"FPS: {int(fps)}", (10, frame.shape[0] - 20),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
@@ -762,6 +887,7 @@ class GestureParticleSystem:
         self.cap.release()
         cv2.destroyAllWindows()
         pygame.quit()
+
 
 if __name__ == "__main__":
     app = GestureParticleSystem()
