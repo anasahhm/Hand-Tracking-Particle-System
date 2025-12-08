@@ -1,9 +1,9 @@
 ***A real-time hand tracking application with 3D particle effects.***
 
-**Installation:**
+**Installation:**                                                                                 
 pip install opencv-python mediapipe pygame PyOpenGL PyOpenGL_accelerate numpy
 
-**Gestures:**
+**Gestures:**                                                                                                
 ✋ Open Hand (5 fingers) → Holographic Sphere + Particles                                                               
 ✌️ Peace Sign (2 fingers) → Rotating Cube                                                                   
 👆 Pointing (1 finger) → Spiral Trail                                                                                          
@@ -12,6 +12,6 @@ pip install opencv-python mediapipe pygame PyOpenGL PyOpenGL_accelerate numpy
 👍 Thumbs Up → Pyramid                                                                                  
 🖖 Spock Sign (4 fingers) → DNA Helix                                                                                         
 
-**Controls:**
+**Controls:**                                                                                                      
 Press 'Q' or ESC to quit                                                                                       
 Press 'H' to toggle help text
