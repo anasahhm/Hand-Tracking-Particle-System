@@ -1,16 +1,13 @@
-***A real-time hand tracking application with 3D particle effects.***
+***Clean Gesture-Controlled Shapes - Resizable Edition***
 
 **Installation:**                                                                                 
-pip install opencv-python mediapipe pygame PyOpenGL PyOpenGL_accelerate numpy
+pip install opencv-python mediapipe numpy
 
 **Gestures:**                                                                                                
-✋ Open Hand (5 fingers) → Holographic Sphere + Particles                                                               
-✌️ Peace Sign (2 fingers) → Rotating Cube                                                                   
-👆 Pointing (1 finger) → Spiral Trail                                                                                          
-✊ Fist (0 fingers) → Particle Explosion                                                                            
-🤘 Rock Sign (2 fingers spread) → Torus Ring                                                                            
-👍 Thumbs Up → Pyramid                                                                                  
-🖖 Spock Sign (4 fingers) → DNA Helix                                                                                         
+✋ Open Hand (5 fingers) → Sphere
+✌️ Peace Sign (2 fingers) → Cube
+👆 Pointing (1 finger) → Pyramid
+🤏 Pinch → Resize current shape (closer = smaller, farther = bigger)                                                                                         
 
 **Controls:**                                                                                                      
 Press 'Q' or ESC to quit                                                                                       
